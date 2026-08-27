@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { analyzeWav } from './src/music.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC = path.join(ROOT, 'public');
+const PUBLIC = path.join(ROOT, 'dist');
 const PORT = Number(process.env.PORT || 3000);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml' };
 async function body(req, max = 128 * 1024 * 1024) { const chunks=[]; let size=0; for await (const chunk of req) { size+=chunk.length; if(size>max) throw Error('WAV 文件过大（上限 128 MiB）'); chunks.push(chunk); } return Buffer.concat(chunks); }
