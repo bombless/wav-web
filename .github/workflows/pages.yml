@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [test]
+    branches: [test-browser]
   workflow_dispatch:
 
 permissions:
@@ -20,19 +20,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Prepare static site
-        run: |
-          mkdir -p _site/vendor
-          cp -R public/. _site/
-          curl -fsSL https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js -o _site/vendor/vue-2.7.16.min.js
-          sed -i 's#https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js#/vendor/vue-2.7.16.min.js#' _site/index.html
-          touch _site/.nojekyll
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
   deploy:
     environment:
       name: github-pages
