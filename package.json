@@ -11,6 +11,9 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "vue": "^2.7.16"
+  },
   "devDependencies": {
     "vite": "^7.1.3"
   }
