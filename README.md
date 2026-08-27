@@ -25,8 +25,3 @@ npm start
 - 最大值、三条采样轨迹、原音、节拍音符均可试听。
 - Canvas 支持拖动平移和滚轮缩放。
 
-## HTTP API
-
-`POST /api/analyze?win=2048&hop=512`
-
-请求体直接发送 WAV 二进制，返回 JSON：`track`、`sampledTrack`、`tonesTrack`、`duration`、`sampleRate`、`fMax`。
