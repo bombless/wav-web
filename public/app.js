@@ -1,4 +1,4 @@
-import { analyzeWav } from '../src/music-browser.js';
+import { analyzeWav } from './music-browser.js';
 
 const canvas = document.querySelector('#plot');
 if (!canvas) throw new Error('wav-web: #plot not found');
@@ -13,10 +13,7 @@ let raf = 0;
 const vm = new Vue({
   el: '#app',
   data: { status:'等待音频…', meta:'', data:null, fileBuffer:null, noteLines:false, sampled:true, beatLines:false, beatNotes:true, dismiss:false, bpm:120, meter:'4/4', track:'max', fromStart:true, playing:false, playPos:0, notes:[], view:{x0:0,x1:1,y0:0,y1:22050} },
-  watch: {
-    bpm(){if(this.data){this.makeNotes();this.draw();}}, meter(){this.draw();},
-    noteLines(){this.draw();}, sampled(){this.draw();}, beatLines(){this.draw();}, beatNotes(){this.draw();}, dismiss(){this.draw();}, track(){this.draw();}
-  },
+  watch: { bpm(){if(this.data){this.makeNotes();this.draw();}}, meter(){this.draw();}, noteLines(){this.draw();}, sampled(){this.draw();}, beatLines(){this.draw();}, beatNotes(){this.draw();}, dismiss(){this.draw();}, track(){this.draw();} },
   methods: {
     resize(){const d=devicePixelRatio||1;canvas.width=Math.max(1,canvas.clientWidth*d);canvas.height=Math.max(1,canvas.clientHeight*d);ctx.setTransform(d,0,0,d,0,0);this.draw();},
     reset(){if(this.data)this.view={x0:0,x1:this.data.duration,y0:0,y1:this.data.fMax};this.draw();},
@@ -30,47 +27,13 @@ const vm = new Vue({
 
 document.querySelector('#file')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)vm.loadFile(f);});
 document.querySelector('#reset')?.addEventListener('click',()=>vm.reset());
-
 function sx(x){return(x-vm.view.x0)/(vm.view.x1-vm.view.x0)*canvas.clientWidth;}
 function sy(y){return canvas.clientHeight-(y-vm.view.y0)/(vm.view.y1-vm.view.y0)*canvas.clientHeight;}
 function tx(px){return vm.view.x0+px/canvas.clientWidth*(vm.view.x1-vm.view.x0);}
 function ty(py){return vm.view.y0+(canvas.clientHeight-py)/canvas.clientHeight*(vm.view.y1-vm.view.y0);}
-
-function drawCanvas(s){
-  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#10131a';ctx.fillRect(0,0,w,h);
-  if(!s.data){ctx.fillStyle='#8993a4';ctx.font='16px system-ui';ctx.fillText('载入 WAV 后显示主频轨迹',24,32);return;}
-  if(s.noteLines){for(let m=12;m<128;m++){const f=440*2**((m-69)/12);if(f<s.view.y0||f>s.view.y1)continue;const y=sy(f);ctx.strokeStyle=m===60?'#3b82f6':'rgba(120,140,200,.22)';ctx.lineWidth=m===60?1.5:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();if(s.view.y1-s.view.y0<5000||m%12===0){ctx.fillStyle='#8c98aa';ctx.font='11px system-ui';ctx.fillText(`${NOTE[m%12]}${Math.floor(m/12)-1}`,5,y-3);}}}
-  const line=(pts,stroke,width)=>{ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.beginPath();let st=false;for(const p of pts){if(p[0]<s.view.x0||p[0]>s.view.x1)continue;const x=sx(p[0]),y=sy(p[1]);if(!st){ctx.moveTo(x,y);st=true;}else ctx.lineTo(x,y);}if(st)ctx.stroke();};
-  if(s.sampled)for(let i=0;i<3;i++)line(s.data.sampledTrack.map(p=>[p[0],p[1][i]]),'rgba(168,85,247,.55)',1.2);
-  line(s.data.track,'#ff355d',s.track==='max'?2.8:1.8);
-  const bd=60/Math.max(1,Number(s.bpm));
-  if(s.beatLines)for(let t=Math.floor(s.view.x0/bd)*bd;t<=s.view.x1;t+=bd){const n=Math.round(t/bd),strong=n%Number(s.meter.split('/')[0])===0;ctx.strokeStyle=strong?'rgba(30,150,255,.7)':'rgba(100,150,255,.25)';ctx.lineWidth=strong?2:1;ctx.beginPath();ctx.moveTo(sx(t),0);ctx.lineTo(sx(t),h);ctx.stroke();}
-  if(s.beatNotes)for(const b of s.notes){if(b.t<s.view.x0-bd||b.t>s.view.x1)continue;const x=sx(b.t),rw=Math.max(30,sx(b.t+bd*.8)-x),boxY=28,dotX=x+rw,dotY=boxY-8;ctx.fillStyle=b.dismiss?'rgba(70,70,80,.35)':'#315f9e';ctx.fillRect(x,boxY,rw,34);ctx.strokeStyle=b.full?'#ffd43b':'#7da7df';ctx.strokeRect(x,boxY,rw,34);ctx.fillStyle='#fff';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText(b.dismiss?'—':b.name,x+rw/2,boxY+15);ctx.font='10px system-ui';ctx.fillText(b.dismiss?'已消除':`${b.freq.toFixed(1)}Hz`,x+rw/2,boxY+29);ctx.textAlign='left';if(s.dismiss){ctx.save();ctx.fillStyle=b.dismiss?'#f6c343':'#ef4444';ctx.beginPath();ctx.arc(dotX,dotY,7,0,Math.PI*2);ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#10131a';ctx.stroke();ctx.restore();}}
-  if(s.playPos>0){ctx.strokeStyle='rgba(0,255,100,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(s.playPos),0);ctx.lineTo(sx(s.playPos),h);ctx.stroke();}
-  ctx.strokeStyle='#333b48';ctx.strokeRect(.5,.5,w-1,h-1);ctx.fillStyle='#8f9aaa';ctx.font='11px system-ui';for(let i=0;i<=10;i++){const t=s.view.x0+(s.view.x1-s.view.x0)*i/10;ctx.fillText(`${t.toFixed(2)}s`,sx(t)+2,h-4);}
-}
-
+function drawCanvas(s){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#10131a';ctx.fillRect(0,0,w,h);if(!s.data){ctx.fillStyle='#8993a4';ctx.font='16px system-ui';ctx.fillText('载入 WAV 后显示主频轨迹',24,32);return;}if(s.noteLines){for(let m=12;m<128;m++){const f=440*2**((m-69)/12);if(f<s.view.y0||f>s.view.y1)continue;const y=sy(f);ctx.strokeStyle=m===60?'#3b82f6':'rgba(120,140,200,.22)';ctx.lineWidth=m===60?1.5:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();if(s.view.y1-s.view.y0<5000||m%12===0){ctx.fillStyle='#8c98aa';ctx.font='11px system-ui';ctx.fillText(`${NOTE[m%12]}${Math.floor(m/12)-1}`,5,y-3);}}}const line=(pts,stroke,width)=>{ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.beginPath();let st=false;for(const p of pts){if(p[0]<s.view.x0||p[0]>s.view.x1)continue;const x=sx(p[0]),y=sy(p[1]);if(!st){ctx.moveTo(x,y);st=true;}else ctx.lineTo(x,y);}if(st)ctx.stroke();};if(s.sampled)for(let i=0;i<3;i++)line(s.data.sampledTrack.map(p=>[p[0],p[1][i]]),'rgba(168,85,247,.55)',1.2);line(s.data.track,'#ff355d',s.track==='max'?2.8:1.8);const bd=60/Math.max(1,Number(s.bpm));if(s.beatLines)for(let t=Math.floor(s.view.x0/bd)*bd;t<=s.view.x1;t+=bd){const n=Math.round(t/bd),strong=n%Number(s.meter.split('/')[0])===0;ctx.strokeStyle=strong?'rgba(30,150,255,.7)':'rgba(100,150,255,.25)';ctx.lineWidth=strong?2:1;ctx.beginPath();ctx.moveTo(sx(t),0);ctx.lineTo(sx(t),h);ctx.stroke();}if(s.beatNotes)for(const b of s.notes){if(b.t<s.view.x0-bd||b.t>s.view.x1)continue;const x=sx(b.t),rw=Math.max(30,sx(b.t+bd*.8)-x),boxY=28,dotX=x+rw,dotY=boxY-8;ctx.fillStyle=b.dismiss?'rgba(70,70,80,.35)':'#315f9e';ctx.fillRect(x,boxY,rw,34);ctx.strokeStyle=b.full?'#ffd43b':'#7da7df';ctx.strokeRect(x,boxY,rw,34);ctx.fillStyle='#fff';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText(b.dismiss?'—':b.name,x+rw/2,boxY+15);ctx.font='10px system-ui';ctx.fillText(b.dismiss?'已消除':`${b.freq.toFixed(1)}Hz`,x+rw/2,boxY+29);ctx.textAlign='left';if(s.dismiss){ctx.save();ctx.fillStyle=b.dismiss?'#f6c343':'#ef4444';ctx.beginPath();ctx.arc(dotX,dotY,7,0,Math.PI*2);ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#10131a';ctx.stroke();ctx.restore();}}if(s.playPos>0){ctx.strokeStyle='rgba(0,255,100,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(s.playPos),0);ctx.lineTo(sx(s.playPos),h);ctx.stroke();}ctx.strokeStyle='#333b48';ctx.strokeRect(.5,.5,w-1,h-1);ctx.fillStyle='#8f9aaa';ctx.font='11px system-ui';for(let i=0;i<=10;i++){const t=s.view.x0+(s.view.x1-s.view.x0)*i/10;ctx.fillText(`${t.toFixed(2)}s`,sx(t)+2,h-4);}}
 canvas.addEventListener('wheel',e=>{if(!vm.data)return;e.preventDefault();const cx=tx(e.offsetX),cy=ty(e.offsetY),k=e.deltaY>0?1.12:.88;vm.view.x0=Math.max(0,cx-(cx-vm.view.x0)*k);vm.view.x1=Math.min(vm.data.duration,cx+(vm.view.x1-cx)*k);vm.view.y0=Math.max(0,cy-(cy-vm.view.y0)*k);vm.view.y1=Math.min(vm.data.fMax,cy+(vm.view.y1-cy)*k);if(vm.view.x1-vm.view.x0<.01)vm.view.x1=vm.view.x0+.01;vm.draw();},{passive:false});
-canvas.addEventListener('mousedown',e=>{drag={x:e.offsetX,y:e.offsetY,x0:vm.view.x0,x1:vm.view.x1,y0:vm.view.y0,y1:vm.view.y1};});
-window.addEventListener('mouseup',()=>drag=null);
-canvas.addEventListener('mousemove',e=>{if(!drag||!vm.data)return;const dx=(e.offsetX-drag.x)/canvas.clientWidth*(drag.x1-drag.x0),dy=(e.offsetY-drag.y)/canvas.clientHeight*(drag.y1-drag.y0);vm.view.x0=Math.max(0,drag.x0-dx);vm.view.x1=Math.min(vm.data.duration,drag.x1-dx);vm.view.y0=Math.max(0,drag.y0+dy);vm.view.y1=Math.min(vm.data.fMax,drag.y1+dy);vm.draw();});
+canvas.addEventListener('mousedown',e=>{drag={x:e.offsetX,y:e.offsetY,x0:vm.view.x0,x1:vm.view.x1,y0:vm.view.y0,y1:vm.view.y1};});window.addEventListener('mouseup',()=>drag=null);canvas.addEventListener('mousemove',e=>{if(!drag||!vm.data)return;const dx=(e.offsetX-drag.x)/canvas.clientWidth*(drag.x1-drag.x0),dy=(e.offsetY-drag.y)/canvas.clientHeight*(drag.y1-drag.y0);vm.view.x0=Math.max(0,drag.x0-dx);vm.view.x1=Math.min(vm.data.duration,drag.x1-dx);vm.view.y0=Math.max(0,drag.y0+dy);vm.view.y1=Math.min(vm.data.fMax,drag.y1+dy);vm.draw();});
 canvas.addEventListener('click',e=>{if(!vm.data)return;const x=tx(e.offsetX),y=ty(e.offsetY),bd=60/Math.max(1,Number(vm.bpm));if(e.ctrlKey){vm.playPos=Math.max(0,Math.min(vm.data.duration,x));if(vm.playing)startPlayback(vm,vm.playPos);vm.draw();return;}if(!vm.beatNotes)return;if(vm.dismiss){for(const b of vm.notes){if(b.t<vm.view.x0-bd||b.t>vm.view.x1)continue;const bx=sx(b.t),rw=Math.max(30,sx(b.t+bd*.8)-bx),dotX=bx+rw,dotY=20;if(Math.hypot(e.offsetX-dotX,e.offsetY-dotY)<=13){b.dismiss=!b.dismiss;vm.draw();return;}}}const b=vm.notes.find(n=>x>=n.t&&x<=n.t+bd*.8&&y>0&&y<vm.view.y1*.35);if(!b)return;if(e.shiftKey&&vm.dismiss){b.dismiss=!b.dismiss;vm.draw();return;}if(b.dismiss){b.dismiss=false;vm.draw();return;}const idx=b.candidates.findIndex(c=>c[0]===b.name),c=b.candidates[(idx+1)%Math.max(1,b.candidates.length)];if(c){b.name=c[0];b.freq=c[1];}else b.full=!b.full;vm.draw();});
-
-async function startPlayback(s,start){
-  stopPlayback(s);
-  if(!s.data)return;
-  try {
-    audioCtx ||= new AudioContext();
-    await audioCtx.resume();
-    const sr=s.data.sampleRate;
-    const buffer=audioCtx.createBuffer(1,s.fileBuffer.byteLength?Math.floor(s.fileBuffer.byteLength/sr):0,sr);
-    const decoded=await audioCtx.decodeAudioData(s.fileBuffer.slice(0));
-    source=audioCtx.createBufferSource();source.buffer=decoded;source.connect(audioCtx.destination);
-    const offset=Math.max(0,Math.min(decoded.duration,start));
-    source.start(0,offset);s.playing=true;s.playPos=offset;const t0=audioCtx.currentTime-offset;
-    const tick=()=>{if(!s.playing)return;s.playPos=Math.min(decoded.duration,audioCtx.currentTime-t0);s.draw();if(s.playPos>=decoded.duration){stopPlayback(s);return;}raf=requestAnimationFrame(tick);};tick();
-    source.onended=()=>{if(s.playing){s.playing=false;cancelAnimationFrame(raf);s.playPos=decoded.duration;s.draw();}};
-  } catch(e){console.error(e);s.status=e.message||'播放失败';s.playing=false;}
-}
-
+async function startPlayback(s,start){stopPlayback(s);if(!s.data)return;try{audioCtx ||= new AudioContext();await audioCtx.resume();const decoded=await audioCtx.decodeAudioData(s.fileBuffer.slice(0));source=audioCtx.createBufferSource();source.buffer=decoded;source.connect(audioCtx.destination);const offset=Math.max(0,Math.min(decoded.duration,start));source.start(0,offset);s.playing=true;s.playPos=offset;const t0=audioCtx.currentTime-offset;const tick=()=>{if(!s.playing)return;s.playPos=Math.min(decoded.duration,audioCtx.currentTime-t0);s.draw();if(s.playPos>=decoded.duration){stopPlayback(s);return;}raf=requestAnimationFrame(tick);};tick();source.onended=()=>{if(s.playing){s.playing=false;cancelAnimationFrame(raf);s.playPos=decoded.duration;s.draw();}};}catch(e){console.error(e);s.status=e.message||'播放失败';s.playing=false;}}
 function stopPlayback(s){if(source){try{source.stop();}catch{}source.disconnect();source=null;}cancelAnimationFrame(raf);s.playing=false;s.draw();}
