@@ -2,16 +2,6 @@
 
 将 `bombless/wav-gpt-5-high` 的 WAV 主频分析、十二平均律标注、节拍音符编辑和合成试听能力重写为 Node.js HTTP 服务 + 浏览器 UI。
 
-## 运行
-
-需要 Node.js 20+：
-
-```bash
-npm start
-```
-
-然后打开 `http://localhost:3000`，选择 WAV 文件。
-
 ## 功能
 
 - 服务器端读取 16-bit PCM / 32-bit float WAV，并做 mono mixdown。
