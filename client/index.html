@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>wav-web demo</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px }
+    #plot { width: 100%; height: 480px }
+    .controls { margin-bottom: 12px }
+  </style>
+</head>
+<body>
+  <h1>wav-web (wav-gpt-5-high migration)</h1>
+  <div class="controls">
+    <input type="file" id="file" accept=".wav" />
+    <button id="upload">Upload & Analyze</button>
+    <span id="status"></span>
+    <div>
+      <label>win_size: <input id="win_size" value="2048" style="width:80px" /></label>
+      <label>hop_size: <input id="hop_size" value="512" style="width:80px" /></label>
+    </div>
+  </div>
+
+  <div id="info"></div>
+  <div id="plot"></div>
+  <div style="margin-top:12px">
+    <audio id="audio" controls></audio>
+    <button id="synthBtn">Synthesize Track</button>
+    <button id="downloadAnnotations">Download Annotations</button>
+    <button id="loadAnnotations">Load Annotations</button>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
