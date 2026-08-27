@@ -1,35 +1,33 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WAV 主频轨迹浏览器</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WAV 主频轨迹浏览器</title><link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div id="app" class="app-shell">
-    <header class="toolbar">
-      <div class="toolbar-row toolbar-main">
-        <label class="file-button"><input id="file" type="file" accept=".wav,audio/wav"><span>载入 WAV</span></label>
-        <span id="status" class="status">等待音频…</span><span id="meta" class="meta"></span>
-      </div>
-      <div class="toolbar-row controls">
-        <label class="control"><input id="noteLines" type="checkbox"><span>十二平均律标线</span></label>
-        <label class="control"><input id="sampled" type="checkbox" checked><span>采样音轨</span></label>
-        <label class="control"><input id="beatLines" type="checkbox"><span>节拍线</span></label>
-        <label class="control"><input id="beatNotes" type="checkbox" checked><span>节拍音符</span></label>
-        <label class="control"><input id="dismiss" type="checkbox"><span>音符取消</span></label>
-        <label class="control-field"><span>BPM</span><input id="bpm" type="number" min="30" max="300" value="120"></label>
-        <label class="control-field"><span>拍号</span><select id="meter"><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/4</option></select></label>
-        <label class="control-field"><span>播放轨迹</span><select id="track"><option value="max">最大值（红线）</option><option value="s1">采样音轨 #1</option><option value="s2">采样音轨 #2</option><option value="s3">采样音轨 #3</option><option value="original">原音</option><option value="notes">节拍音符</option></select></label>
-        <label class="control"><input id="fromStart" type="checkbox" checked><span>每次从头播放</span></label>
-        <button id="play" class="button primary" type="button" @click="togglePlay">{{ playing ? '停止播放' : '播放合成音' }}</button>
-        <button id="reset" class="button" type="button">重置视图</button>
-      </div>
-    </header>
-    <main class="workspace"><canvas id="plot"></canvas><div class="hint">拖动平移 · 滚轮缩放 · Ctrl+点击设置播放位置 · 点击顶部节拍音符修改 · 开启「音符取消」后点击红点删除/恢复</div></main>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
-  <script src="/app.js"></script>
+<div id="app" class="app-shell">
+  <header class="toolbar">
+    <div class="toolbar-row toolbar-main">
+      <label class="file-button"><input id="file" type="file" accept=".wav,audio/wav"><span>载入 WAV</span></label>
+      <span class="status">{{ status }}</span><span class="meta">{{ meta }}</span>
+    </div>
+    <div class="toolbar-row controls">
+      <label class="control"><input v-model="noteLines" type="checkbox"><span>十二平均律标线</span></label>
+      <label class="control"><input v-model="sampled" type="checkbox"><span>采样音轨</span></label>
+      <label class="control"><input v-model="beatLines" type="checkbox"><span>节拍线</span></label>
+      <label class="control"><input v-model="beatNotes" type="checkbox"><span>节拍音符</span></label>
+      <label class="control"><input v-model="dismiss" type="checkbox"><span>音符取消</span></label>
+      <label class="control-field"><span>BPM</span><input v-model.number="bpm" type="number" min="30" max="300"></label>
+      <label class="control-field"><span>拍号</span><select v-model="meter"><option>3/4</option><option>4/4</option><option>5/4</option><option>6/4</option></select></label>
+      <label class="control-field"><span>播放轨迹</span><select v-model="track"><option value="max">最大值（红线）</option><option value="s1">采样音轨 #1</option><option value="s2">采样音轨 #2</option><option value="s3">采样音轨 #3</option><option value="original">原音</option><option value="notes">节拍音符</option></select></label>
+      <label class="control"><input v-model="fromStart" type="checkbox"><span>每次从头播放</span></label>
+      <button class="button primary" type="button" @click="togglePlay">{{ playing ? '停止播放' : '播放合成音' }}</button>
+      <button class="button" type="button" @click="reset">重置视图</button>
+    </div>
+  </header>
+  <main class="workspace"><canvas id="plot"></canvas><div class="hint">拖动平移 · 滚轮缩放 · Ctrl+点击设置播放位置 · 点击顶部节拍音符修改 · 开启「音符取消」后点击红点删除/恢复</div></main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
