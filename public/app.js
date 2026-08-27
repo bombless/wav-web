@@ -1,6 +1,14 @@
 (() => {
-  const $ = id => document.getElementById(id);
-  const canvas = $('plot'), ctx = canvas.getContext('2d');
+  const canvas = document.querySelector('#plot');
+  if (!canvas) {
+    console.error('wav-web: #plot not found');
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error('wav-web: unable to get 2D canvas context');
+    return;
+  }
   const NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   let drag = null, audioCtx = null, source = null, raf = 0, playStart = 0;
 
@@ -22,9 +30,9 @@
     mounted(){this.resize();window.addEventListener('resize',this.resize);}
   });
 
-  const fileInput = $('file');
+  const fileInput = document.querySelector('#file');
   if (fileInput) fileInput.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)vm.loadFile(f);});
-  const resetButton = $('reset');
+  const resetButton = document.querySelector('#reset');
   if (resetButton) resetButton.addEventListener('click',()=>vm.reset());
 
   function sx(x){return(x-vm.view.x0)/(vm.view.x1-vm.view.x0)*canvas.clientWidth;}
@@ -39,5 +47,5 @@
   canvas.addEventListener('click',e=>{if(!vm.data)return;const x=tx(e.offsetX),y=ty(e.offsetY),bd=60/Math.max(1,Number(vm.bpm));if(e.ctrlKey){vm.playPos=Math.max(0,Math.min(vm.data.duration,x));if(vm.playing)startPlayback(vm,vm.playPos);vm.draw();return;}if(!vm.beatNotes)return;if(vm.dismiss){for(const b of vm.notes){if(b.t<vm.view.x0-bd||b.t>vm.view.x1)continue;const bx=sx(b.t),rw=Math.max(30,sx(b.t+bd*.8)-bx),dotX=bx+rw,dotY=28-8;if(Math.hypot(e.offsetX-dotX,e.offsetY-dotY)<=13){b.dismiss=!b.dismiss;vm.draw();return;}}}const b=vm.notes.find(n=>x>=n.t&&x<=n.t+bd*.8&&y>0&&y<vm.view.y1*.35);if(!b)return;if(e.shiftKey&&vm.dismiss){b.dismiss=!b.dismiss;vm.draw();return;}if(b.dismiss){b.dismiss=false;vm.draw();return;}const idx=b.candidates.findIndex(c=>c[0]===b.name),c=b.candidates[(idx+1)%Math.max(1,b.candidates.length)];if(c){b.name=c[0];b.freq=c[1];}else b.full=!b.full;vm.draw();});
 
   function readWav(bytes){const ascii=(o,n)=>String.fromCharCode(...bytes.subarray(o,o+n));if(ascii(0,4)!=='RIFF'||ascii(8,4)!=='WAVE')throw Error('不是有效的 RIFF/WAVE 文件');const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);let p=12,fmt=null,ds=null;while(p+8<=bytes.length){const id=ascii(p,4),n=dv.getUint32(p+4,true);p+=8;if(id==='fmt ')fmt={format:dv.getUint16(p,true),channels:dv.getUint16(p+2,true),sampleRate:dv.getUint32(p+4,true),bits:dv.getUint16(p+14,true)};else if(id==='data'){ds=[p,Math.min(n,bytes.length-p)];break;}p+=n+(n&1);}if(!fmt||!ds)throw Error('WAV 缺少 fmt 或 data 块');if(!((fmt.format===1&&fmt.bits===16)||(fmt.format===3&&fmt.bits===32)))throw Error('仅支持 16-bit PCM 或 32-bit float WAV');const[start,size]=ds,b=fmt.bits/8,frames=Math.floor(size/b/fmt.channels),mono=new Float64Array(frames);for(let i=0;i<frames;i++){let sum=0;for(let c=0;c<fmt.channels;c++){const o=start+(i*fmt.channels+c)*b;sum+=fmt.format===1?dv.getInt16(o,true)/32768:dv.getFloat32(o,true);}mono[i]=sum/fmt.channels;}return{mono,sampleRate:fmt.sampleRate};}
-  function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,co=Math.cos(a),si=Math.sin(a);for(let i=0;i<n;i+=len){let wr=1,wi=0;for(let j=0;j<len/2;j++){const u=i+j,v=u+len/2,tr=re[v]*wr-im[v]*wi,ti=re[v]*wi+im[v]*wr;re[v]=re[u]-tr;im[v]-=ti;re[u]+=tr;im[u]+=ti;const nw=wr*co-wi*si;wi=wr*si+wi*co;wr=nw;}}}}
+  function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,co=Math.cos(a),si=Math.sin(a);for(let i=0;i<n;i+=len){const wr0=1,wi0=0;let wr=wr0,wi=wi0;for(let j=0;j<len/2;j++){const u=i+j,v=u+len/2,tr=re[v]*wr-im[v]*wi,ti=re[v]*wi+im[v]*wr;re[v]=re[u]-tr;im[v]=im[u]-ti;re[u]+=tr;im[u]+=ti;const nw=wr*co-wi*si;wi=wr*si+wi*co;wr=nw;}}}}
 })();
