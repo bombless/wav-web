@@ -1,9 +1,17 @@
 {
   "name": "wav-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Browser-based WAV pitch/note analysis and annotation tool, rewritten from wav-gpt-5-high",
+  "description": "Browser-based WAV pitch/note analysis and annotation tool",
   "engines": { "node": ">=20" },
-  "scripts": { "start": "node server.js", "dev": "node --watch server.js" }
+  "scripts": {
+    "start": "node server.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
+  }
 }
