@@ -1,0 +1,142 @@
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #10131a;
+  color: #e8edf5;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  overflow: hidden;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  background: #181d27;
+  border-bottom: 1px solid #303847;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.toolbar-main {
+  margin-bottom: 9px;
+}
+
+.controls {
+  font-size: 13px;
+  color: #c7cfdb;
+}
+
+.control,
+.control-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.control-field input[type="number"] {
+  width: 70px;
+}
+
+.control-field select {
+  min-width: 88px;
+}
+
+.control input,
+.control-field input,
+.control-field select {
+  accent-color: #3b82f6;
+}
+
+.control-field input[type="number"],
+.control-field select {
+  background: #242b38;
+  color: #e8edf5;
+  border: 1px solid #3a4352;
+  border-radius: 4px;
+  padding: 4px 7px;
+}
+
+.file-button,
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: #3a4352;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.file-button {
+  background: #2d6cdf;
+}
+
+.file-button input {
+  display: none;
+}
+
+.button.primary {
+  background: #2d6cdf;
+}
+
+.button:hover,
+.file-button:hover {
+  filter: brightness(1.15);
+}
+
+.status {
+  color: #8ea0b8;
+}
+
+.meta {
+  color: #aab4c4;
+  font-size: 12px;
+}
+
+.workspace {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.hint {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgba(10, 13, 18, 0.72);
+  color: #aeb8c8;
+  font-size: 11px;
+  pointer-events: none;
+}
