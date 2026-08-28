@@ -283,7 +283,6 @@ const vm = new Vue({
       const y = this.ty(oy);
       const beatDur = 60 / (Number(this.bpm) || 120);
 
-      // Ctrl+click: set playback position
       if (e.ctrlKey) {
         this.playPos = Math.max(0, Math.min(this.analysis.duration, x));
         if (this.playing) this.restart(this.playPos);
@@ -292,33 +291,34 @@ const vm = new Vue({
       }
 
       if (!this.beatNotes) return;
-      const b = this.notes.find(n => x >= n.t && x <= n.t + beatDur * 0.8 && y > 0 && y < this.view.y1 * 0.35);
+      const b = this.notes.find(n => {
+        const bx = this.sx(n.t);
+        const bw = Math.max(30, this.sx(n.t + beatDur * 0.8) - bx);
+        const dotX = bx + bw, dotY = 28;
+        if (Math.hypot(ox - dotX, oy - dotY) <= 9) return true;
+        return ox >= bx && ox <= bx + bw && oy >= 28 && oy <= 62;
+      });
       if (!b) return;
 
       const bx = this.sx(b.t);
       const bw = Math.max(30, this.sx(b.t + beatDur * 0.8) - bx);
-      const dotX = bx + bw;
-      const dotY = 28;
+      const dist = Math.hypot(ox - (bx + bw), oy - 28);
 
-      // dismiss dot click
-      if (this.dismiss && Math.hypot(ox - dotX, oy - dotY) <= 11) {
+      if (this.dismiss && dist <= 11) {
         b.dismiss = !b.dismiss;
         this.draw();
         return;
       }
-      // Shift+click dismiss
       if (e.shiftKey && this.dismiss) {
         b.dismiss = !b.dismiss;
         this.draw();
         return;
       }
-      // clicking dismissed note restores it
       if (b.dismiss) {
         b.dismiss = false;
         this.draw();
         return;
       }
-      // cycle candidates or toggle full
       const idx = b.candidates.findIndex(c => c[0] === b.name);
       const c = b.candidates[(idx + 1) % Math.max(1, b.candidates.length)];
       if (c) {
