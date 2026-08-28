@@ -4,8 +4,9 @@ on:
     branches:
       - test-browser
 
+# Give the workflow write permission so the deploy action (github-actions[bot]) can push
 permissions:
-  contents: read
+  contents: write   # <- must be write to allow pushes using GITHUB_TOKEN
   pages: write
   id-token: write
 
