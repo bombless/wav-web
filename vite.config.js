@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  // Set base to the repository path so GitHub Pages serves assets from /bombless.github.io/wav-web/
-  base: '/wav-web/'
+  // Use relative asset URLs so the app works on GitHub Pages under /wav-web/
+  // as well as when deployed at a custom domain/root path.
+  base: './'
 })
