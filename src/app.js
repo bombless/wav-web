@@ -18,16 +18,24 @@ const vm = new Vue({
     playing: false,
     analysis: null,
     audio: null,
+    canvas: null,
+    ctx: null,
+    fileInput: null,
     view: { minTime: 0, maxTime: 10, minFreq: 0, maxFreq: 2000 },
     drag: null
   },
   mounted() {
     this.$nextTick(() => {
-      this.canvas = this.$refs.plot || this.$el.querySelector('#plot');
+      // In Vue 2, $el is not guaranteed to be a DOM Element here in every build.
+      // Use document lookup for the two static elements instead of $el.querySelector().
+      this.canvas = document.getElementById('plot');
+      this.fileInput = document.getElementById('file');
       if (!this.canvas) return;
+
       this.ctx = this.canvas.getContext('2d');
-      const fileInput = this.$el.querySelector('#file');
-      fileInput?.addEventListener('change', this.onFile);
+      if (!this.ctx) return;
+
+      this.fileInput?.addEventListener('change', this.onFile);
       this.resize();
       window.addEventListener('resize', this.resize);
       this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
@@ -43,8 +51,7 @@ const vm = new Vue({
       this.canvas.removeEventListener('wheel', this.onWheel);
       this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     }
-    const fileInput = this.$el?.querySelector('#file');
-    fileInput?.removeEventListener('change', this.onFile);
+    this.fileInput?.removeEventListener('change', this.onFile);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
   },
@@ -69,7 +76,7 @@ const vm = new Vue({
       }
     },
     resize() {
-      if (!this.canvas) return;
+      if (!this.canvas || !this.ctx) return;
       const dpr = window.devicePixelRatio || 1;
       const rect = this.canvas.getBoundingClientRect();
       this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
@@ -94,10 +101,10 @@ const vm = new Vue({
       }
       if (!this.analysis) return;
       this.playing = true;
-      // Playback generation is intentionally kept compatible with the existing browser implementation.
       setTimeout(() => { this.playing = false; }, this.analysis.duration * 1000);
     },
     onWheel(e) {
+      if (!this.canvas) return;
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
@@ -110,11 +117,12 @@ const vm = new Vue({
       this.draw();
     },
     onPointerDown(e) {
+      if (!this.canvas) return;
       this.drag = { x: e.clientX, minTime: this.view.minTime, maxTime: this.view.maxTime };
       this.canvas.setPointerCapture?.(e.pointerId);
     },
     onPointerMove(e) {
-      if (!this.drag) return;
+      if (!this.drag || !this.canvas) return;
       const rect = this.canvas.getBoundingClientRect();
       const span = this.drag.maxTime - this.drag.minTime;
       const dt = (e.clientX - this.drag.x) / rect.width * span;
