@@ -22,19 +22,31 @@ const vm = new Vue({
     drag: null
   },
   mounted() {
-    this.canvas = document.getElementById('plot');
-    this.ctx = this.canvas.getContext('2d');
-    document.getElementById('file').addEventListener('change', this.onFile);
-    this.resize();
-    window.addEventListener('resize', this.resize);
-    this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
-    this.canvas.addEventListener('pointerdown', this.onPointerDown);
-    window.addEventListener('pointermove', this.onPointerMove);
-    window.addEventListener('pointerup', this.onPointerUp);
-    this.draw();
+    this.$nextTick(() => {
+      this.canvas = this.$refs.plot || this.$el.querySelector('#plot');
+      if (!this.canvas) return;
+      this.ctx = this.canvas.getContext('2d');
+      const fileInput = this.$el.querySelector('#file');
+      fileInput?.addEventListener('change', this.onFile);
+      this.resize();
+      window.addEventListener('resize', this.resize);
+      this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
+      this.canvas.addEventListener('pointerdown', this.onPointerDown);
+      window.addEventListener('pointermove', this.onPointerMove);
+      window.addEventListener('pointerup', this.onPointerUp);
+      this.draw();
+    });
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.resize);
+    if (this.canvas) {
+      this.canvas.removeEventListener('wheel', this.onWheel);
+      this.canvas.removeEventListener('pointerdown', this.onPointerDown);
+    }
+    const fileInput = this.$el?.querySelector('#file');
+    fileInput?.removeEventListener('change', this.onFile);
+    window.removeEventListener('pointermove', this.onPointerMove);
+    window.removeEventListener('pointerup', this.onPointerUp);
   },
   methods: {
     async onFile(event) {
