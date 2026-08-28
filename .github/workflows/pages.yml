@@ -4,14 +4,13 @@ on:
     branches:
       - test-browser
 
-# Required permissions for Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,14 +27,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: ./dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          folder: dist
+          branch: gh-pages
+          keep_history: true
