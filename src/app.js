@@ -18,6 +18,11 @@ const vm = new Vue({
     playing: false,
     analysis: null,
     audio: null,
+    audioCtx: null,
+    rawBytes: null,
+    pauseOffset: 0,
+    _playStart: 0,
+    _playTimer: null,
     canvas: null,
     ctx: null,
     fileInput: null,
@@ -59,9 +64,13 @@ const vm = new Vue({
     async onFile(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
+      this.stopAudio();
+      this.playing = false;
+      this.pauseOffset = 0;
       this.status = '分析中…';
       try {
         const bytes = new Uint8Array(await file.arrayBuffer());
+        this.rawBytes = bytes;
         this.analysis = analyzeWav(bytes);
         this.view.maxTime = this.analysis.duration;
         this.view.maxFreq = Math.max(2000, this.analysis.fMax);
@@ -95,13 +104,135 @@ const vm = new Vue({
     },
     togglePlay() {
       if (this.playing) {
-        if (this.audio) this.audio.pause();
-        this.playing = false;
+        this.pausePlayback();
         return;
       }
-      if (!this.analysis) return;
+      if (!this.analysis) {
+        console.warn('[togglePlay] no analysis loaded, nothing to play');
+        return;
+      }
+      this.startPlayback();
+    },
+    ensureAudioCtx() {
+      if (!this.audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.audioCtx = new AC();
+      }
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+      return this.audioCtx;
+    },
+    stopAudio() {
+      if (this.audio) {
+        try { this.audio.stop(); } catch (e) { /* ignore */ }
+        this.audio = null;
+      }
+      if (this._playTimer) { clearTimeout(this._playTimer); this._playTimer = null; }
+    },
+    startPlayback() {
+      this.stopAudio();
+      const offset = this.fromStart ? 0 : (this.pauseOffset || 0);
+      if (this.track === 'original') {
+        this.playOriginal(offset);
+      } else {
+        this.playSynthesized(offset);
+      }
       this.playing = true;
-      setTimeout(() => { this.playing = false; }, this.analysis.duration * 1000);
+      const remaining = Math.max(0, (this.analysis.duration - offset) * 1000);
+      this._playTimer = setTimeout(() => {
+        this.stopAudio();
+        this.playing = false;
+        this.pauseOffset = 0;
+      }, remaining);
+    },
+    pausePlayback() {
+      if (this.audioCtx && this._playStart) {
+        const elapsed = this.audioCtx.currentTime - this._playStart;
+        this.pauseOffset = Math.max(0, Math.min(this.analysis.duration, elapsed));
+      }
+      this.stopAudio();
+      this.playing = false;
+    },
+    buildVoices() {
+      const a = this.analysis;
+      const mk = fn => a.sampledTrack.map(([t, freqs]) => [t, fn(freqs) || 0]);
+      switch (this.track) {
+        case 's1': return [mk(f => f[0])];
+        case 's2': return [mk(f => f[1])];
+        case 's3': return [mk(f => f[2])];
+        case 'notes': return [a.tonesTrack.map(([t, tones]) => [t, tones[0] ? tones[0][1] : 0])];
+        case 'original': return null;
+        case 'max':
+        default: return [mk(f => f[0])];
+      }
+    },
+    playSynthesized(offset) {
+      const ctx = this.ensureAudioCtx();
+      const duration = this.analysis.duration;
+      const voices = this.buildVoices();
+      const t0 = ctx.currentTime - offset;
+      this._playStart = t0;
+
+      const master = ctx.createGain();
+      master.gain.value = 0.6;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 4500;
+      master.connect(filter).connect(ctx.destination);
+
+      const oscillators = [];
+      for (const voice of voices) {
+        if (!voice || !voice.length) continue;
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        const g = ctx.createGain();
+        g.gain.value = 0;
+        osc.connect(g).connect(master);
+        let prevGain = 0;
+        for (const [t, f] of voice) {
+          if (t > duration) break;
+          const ct = t0 + t;
+          if (f > 0) {
+            osc.frequency.setValueAtTime(Math.max(20, Math.min(8000, f)), ct);
+            if (prevGain === 0) {
+              g.gain.setValueAtTime(0, ct);
+              g.gain.linearRampToValueAtTime(0.3, ct + 0.012);
+              prevGain = 0.3;
+            }
+          } else if (prevGain !== 0) {
+            g.gain.linearRampToValueAtTime(0, ct + 0.012);
+            prevGain = 0;
+          }
+        }
+        osc.start(t0 + offset);
+        osc.stop(t0 + duration + 0.1);
+        oscillators.push(osc);
+      }
+      console.log('[playSynthesized] track=', this.track, 'voices=', voices.length, 'offset=', offset.toFixed(2), 's');
+      this.audio = {
+        stop: () => {
+          for (const o of oscillators) { try { o.stop(); } catch (e) { /* ignore */ } }
+          try { master.disconnect(); } catch (e) { /* ignore */ }
+        }
+      };
+    },
+    async playOriginal(offset) {
+      try {
+        const ctx = this.ensureAudioCtx();
+        const t0 = ctx.currentTime - offset;
+        this._playStart = t0;
+        const buffer = await ctx.decodeAudioData(this.rawBytes.slice().buffer);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        src.start(0, Math.min(offset, buffer.duration));
+        console.log('[playOriginal] decoded', buffer.duration.toFixed(2), 's, offset=', offset.toFixed(2), 's');
+        this.audio = {
+          stop: () => { try { src.stop(); } catch (e) { /* ignore */ } try { src.disconnect(); } catch (e) { /* ignore */ } }
+        };
+      } catch (err) {
+        console.error('[playOriginal] decode failed:', err);
+        this.status = `播放失败：${err.message}`;
+      }
     },
     onWheel(e) {
       if (!this.canvas) return;
