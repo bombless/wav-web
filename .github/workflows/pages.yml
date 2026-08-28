@@ -19,10 +19,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (use npm ci when lockfile exists)
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Found package-lock.json, using npm ci"
+            npm ci
+          else
+            echo "No package-lock.json, using npm install"
+            npm install
+          fi
 
       - name: Build
         run: npm run build
